@@ -1,24 +1,24 @@
 <?php
 
-use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\ProductController;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| UserService API Routes (UTS - IAE)
+| ProductService API Routes (UTS - IAE)
 |--------------------------------------------------------------------------
 */
 
 /**
- * 1. PROVIDER: Get User by ID
+ * 1. PROVIDER: Get Product by ID
  * Method: GET
- * URL: /api/users/{id}
+ * URL: /api/products/{id}
  */
-Route::get('/users/{id}', [UserController::class, 'show']);
+Route::get('/products/{id}', [ProductController::class, 'show']);
 
 /**
- * 2. CONSUMER: Get User with Orders (Call OrderService)
+ * 2. CONSUMER: Get Product with Owner (Call UserService)
  * Method: GET
- * URL: /api/users/{id}/orders
+ * URL: /api/products/{id}/owner
  */
-Route::get('/users/{id}/orders', [UserController::class, 'showWithOrders']);
+Route::get('/products/{id}/owner', [ProductController::class, 'showWithOwner']);

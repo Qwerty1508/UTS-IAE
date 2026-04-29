@@ -35,8 +35,8 @@ return [
         ],
     ],
 
-    'user_service' => [
-        'base_url' => env('USER_SERVICE_URL', 'http://localhost:8001'),
+    'order_service' => [
+        'base_url' => env('ORDER_SERVICE_URL', 'http://localhost:8003'),
     ],
 
 ];

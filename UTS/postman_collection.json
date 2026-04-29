@@ -1,26 +1,26 @@
 {
 	"info": {
 		"_postman_id": "8c5a1a1b-5e5d-4f1d-9f4a-9d9d8c9d8c9d",
-		"name": "UTS - ProductService (Fresh)",
+		"name": "UTS - UserService (Fresh)",
 		"description": "Collection for testing UserService on fresh Laravel 12",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
-			"name": "Provider - Get Product Success",
+			"name": "Provider - Get User Success",
 			"request": {
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8002/api/products/1",
+					"raw": "http://localhost:8001/api/users/1",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "8002",
+					"port": "8001",
 					"path": [
 						"api",
-						"products",
+						"users",
 						"1"
 					]
 				}
@@ -28,22 +28,22 @@
 			"response": []
 		},
 		{
-			"name": "Consumer - Get Product Owner Success",
+			"name": "Consumer - Get User Orders Success",
 			"request": {
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8002/api/products/1/owner",
+					"raw": "http://localhost:8001/api/users/1/orders",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "8002",
+					"port": "8001",
 					"path": [
 						"api",
-						"products",
+						"users",
 						"1",
-						"owner"
+						"orders"
 					]
 				}
 			},
