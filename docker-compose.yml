@@ -1,145 +1,146 @@
 version: '3.8'
 
 services:
-  # User Service
-  user-service:
-    build:
-      context: ./UserService
-      dockerfile: Dockerfile
-    container_name: user-service
-    restart: unless-stopped
-    working_dir: /var/www
-    volumes:
-      - ./UserService:/var/www
-    networks:
-      - uts-network
-
-  user-worker:
-    build:
-      context: ./UserService
-      dockerfile: Dockerfile
-    container_name: user-worker
-    restart: unless-stopped
-    working_dir: /var/www
-    volumes:
-      - ./UserService:/var/www
-    command: php artisan queue:work
-    networks:
-      - uts-network
-    depends_on:
-      - redis
-      - mysql
-
-  # Product Service
-  product-service:
-    build:
-      context: ./ProductService
-      dockerfile: Dockerfile
-    container_name: product-service
-    restart: unless-stopped
-    working_dir: /var/www
-    volumes:
-      - ./ProductService:/var/www
-    networks:
-      - uts-network
-
-  product-worker:
-    build:
-      context: ./ProductService
-      dockerfile: Dockerfile
-    container_name: product-worker
-    restart: unless-stopped
-    working_dir: /var/www
-    volumes:
-      - ./ProductService:/var/www
-    command: php artisan queue:work
-    networks:
-      - uts-network
-    depends_on:
-      - redis
-      - mysql
-
-  # Order Service
-  order-service:
-    build:
-      context: ./OrderService
-      dockerfile: Dockerfile
-    container_name: order-service
-    restart: unless-stopped
-    working_dir: /var/www
-    volumes:
-      - ./OrderService:/var/www
-    networks:
-      - uts-network
-
-  # Queue Workers
-  order-worker:
-    build:
-      context: ./OrderService
-      dockerfile: Dockerfile
-    container_name: order-worker
-    restart: unless-stopped
-    working_dir: /var/www
-    volumes:
-      - ./OrderService:/var/www
-    command: php artisan queue:work
-    networks:
-      - uts-network
-    depends_on:
-      - redis
-      - mysql
-
-  # Nginx Service
-  nginx:
-    image: nginx:alpine
-    container_name: uts-nginx
+  # RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
     restart: unless-stopped
     ports:
-      - "8001:80"
-      - "8002:81"
-      - "8003:82"
-    volumes:
-      - ./UserService:/var/www/user:ro
-      - ./ProductService:/var/www/product:ro
-      - ./OrderService:/var/www/order:ro
-      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
     networks:
-      - uts-network
-    depends_on:
-      - user-service
-      - product-service
-      - order-service
+      - laravel-net
 
-  # Database Service
-  mysql:
+  # User Service
+  user-service-app:
+    build:
+      context: ./UserService
+      dockerfile: Dockerfile
+    container_name: user-service-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./UserService:/var/www/html
+      - /var/www/html/vendor
+    ports:
+      - "8000:8080"
+    networks:
+      - laravel-net
+    depends_on:
+      - user-service-db
+
+  user-service-db:
     image: mysql:8.0
-    container_name: uts-mysql
+    container_name: user-service-db
     restart: unless-stopped
     environment:
+      MYSQL_DATABASE: uts_user
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
     ports:
-      - "33066:3306"
-    volumes:
-      - uts-db-data:/var/lib/mysql
-      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - "3307:3306"
     networks:
-      - uts-network
+      - laravel-net
 
-  # Redis Service (for Queue)
-  redis:
-    image: redis:alpine
-    container_name: uts-redis
+  # Product Service
+  product-service-app:
+    build:
+      context: ./ProductService
+      dockerfile: Dockerfile
+    container_name: product-service-app
     restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./ProductService:/var/www/html
+      - /var/www/html/vendor
     ports:
-      - "63799:6379"
+      - "8001:8080"
     networks:
-      - uts-network
+      - laravel-net
+    depends_on:
+      - product-service-db
+      - rabbitmq
+
+  product-service-worker:
+    build:
+      context: ./ProductService
+      dockerfile: Dockerfile
+    container_name: product-service-worker
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./ProductService:/var/www/html
+      - /var/www/html/vendor
+    command: php artisan queue:work rabbitmq --queue=product-stock-update
+    networks:
+      - laravel-net
+    depends_on:
+      - product-service-db
+      - rabbitmq
+
+  product-service-db:
+    image: mysql:8.0
+    container_name: product-service-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: uts_product
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3308:3306"
+    networks:
+      - laravel-net
+
+  # Order Service
+  order-service-app:
+    build:
+      context: ./OrderService
+      dockerfile: Dockerfile
+    container_name: order-service-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./OrderService:/var/www/html
+      - /var/www/html/vendor
+    ports:
+      - "8002:8080"
+    networks:
+      - laravel-net
+    depends_on:
+      - order-service-db
+      - rabbitmq
+
+  order-service-worker:
+    build:
+      context: ./OrderService
+      dockerfile: Dockerfile
+    container_name: order-service-worker
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./OrderService:/var/www/html
+      - /var/www/html/vendor
+    command: php artisan queue:work rabbitmq
+    networks:
+      - laravel-net
+    depends_on:
+      - order-service-db
+      - rabbitmq
+
+  order-service-db:
+    image: mysql:8.0
+    container_name: order-service-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: uts_order
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3309:3306"
+    networks:
+      - laravel-net
 
 networks:
-  uts-network:
+  laravel-net:
     driver: bridge
-
-volumes:
-  uts-db-data:
-    driver: local

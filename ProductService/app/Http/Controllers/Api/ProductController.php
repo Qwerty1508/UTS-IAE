@@ -20,7 +20,7 @@ class ProductController extends Controller
     public function show($id): JsonResponse
     {
         $validator = Validator::make(['id' => $id], [
-            'id' => 'required|integer|min:1',
+            'id' => 'required|string|uuid',
         ]);
 
         if ($validator->fails()) {
@@ -36,6 +36,44 @@ class ProductController extends Controller
         return $this->successResponse("Product retrieved successfully", $product);
     }
 
+    public function index(): JsonResponse
+    {
+        return $this->successResponse("Products retrieved successfully", Product::all());
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string',
+            'price' => 'required|integer',
+            'stock' => 'required|integer',
+            'user_id' => 'required|uuid',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse("Validation failed", 400, $validator->errors());
+        }
+
+        $product = Product::create($request->all());
+        return $this->successResponse("Product created successfully", $product, 201);
+    }
+
+    public function update(Request $request, $id): JsonResponse
+    {
+        $product = Product::find($id);
+        if (!$product) return $this->errorResponse("Product not found", 404);
+        $product->update($request->all());
+        return $this->successResponse("Product updated successfully", $product);
+    }
+
+    public function destroy($id): JsonResponse
+    {
+        $product = Product::find($id);
+        if (!$product) return $this->errorResponse("Product not found", 404);
+        $product->delete();
+        return $this->successResponse("Product deleted successfully");
+    }
+
     /**
      * CONSUMER: GET /api/products/{id}/owner
      * Memanggil UserService untuk mendapatkan data pemilik produk
@@ -43,7 +81,7 @@ class ProductController extends Controller
     public function showWithOwner($id): JsonResponse
     {
         $validator = Validator::make(['id' => $id], [
-            'id' => 'required|integer|min:1',
+            'id' => 'required|string|uuid',
         ]);
 
         if ($validator->fails()) {
@@ -73,5 +111,33 @@ class ProductController extends Controller
         } catch (Exception $e) {
             return $this->errorResponse("UserService unreachable", 502);
         }
+    }
+
+    /**
+     * PROVIDER: POST /api/products/{id}/update-stock
+     * Sinkron/Blocking update stock (for performance comparison)
+     */
+    public function updateStock(Request $request, $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'product_quantity' => 'required|integer|min:1',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse("Invalid input", 400);
+        }
+
+        $product = Product::find($id);
+        if (!$product) {
+            return $this->errorResponse("Product not found", 404);
+        }
+
+        // Simulating slow operation
+        sleep(5);
+
+        $product->stock -= $request->product_quantity;
+        $product->save();
+
+        return $this->successResponse("Stock updated successfully (Synchronous)", $product);
     }
 }

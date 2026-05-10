@@ -23,8 +23,8 @@ class OrderController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'user_id' => 'required|integer|min:1',
-            'product_id' => 'required|integer|min:1',
+            'user_id' => 'required|string|uuid',
+            'product_id' => 'required|string|uuid',
             'qty' => 'required|integer|min:1',
         ]);
 
@@ -39,19 +39,19 @@ class OrderController extends Controller
         // 1. CONSUMER: Validasi User exists ke UserService
         try {
             $userUrl = config('services.user_service.base_url');
-            $userResponse = Http::timeout(5)->get("{$userUrl}/api/users/{$userId}");
+            $userResponse = Http::timeout(10)->get("{$userUrl}/api/users/{$userId}");
 
             if (!$userResponse->successful()) {
                 return $this->errorResponse("User not found", 404);
             }
         } catch (Exception $e) {
-            return $this->errorResponse("UserService unreachable", 502);
+            return $this->errorResponse("UserService unreachable: " . $e->getMessage(), 502);
         }
 
         // 2. CONSUMER: Validasi Product & Stok ke ProductService
         try {
             $productUrl = config('services.product_service.base_url');
-            $productResponse = Http::timeout(5)->get("{$productUrl}/api/products/{$productId}");
+            $productResponse = Http::timeout(10)->get("{$productUrl}/api/products/{$productId}");
 
             if (!$productResponse->successful()) {
                 return $this->errorResponse("Product not found", 404);
@@ -66,7 +66,7 @@ class OrderController extends Controller
 
             $price = $productData['price'];
         } catch (Exception $e) {
-            return $this->errorResponse("ProductService unreachable", 502);
+            return $this->errorResponse("ProductService unreachable: " . $e->getMessage(), 502);
         }
 
         // 3. Simpan Order
@@ -81,12 +81,12 @@ class OrderController extends Controller
                 'status' => 'pending'
             ]);
 
-            // Dispatch Asynchronous Job
-            ProcessOrderJob::dispatch($order);
+            // 4. Dispatch Asynchronous Job to RabbitMQ
+            \App\Jobs\UpdateProductStock::dispatch($productId, $qty)->onQueue('product-stock-update');
 
-            return $this->successResponse("Order created successfully and is being processed", $order, 21);
+            return $this->successResponse("Order created successfully", $order, 201);
         } catch (Exception $e) {
-            return $this->errorResponse("Internal server error", 500);
+            return $this->errorResponse("Internal server error: " . $e->getMessage(), 500);
         }
     }
 
@@ -121,5 +121,21 @@ class OrderController extends Controller
         }
 
         return $this->successResponse("Order retrieved successfully", $order);
+    }
+
+    public function update(Request $request, $id): JsonResponse
+    {
+        $order = Order::find($id);
+        if (!$order) return $this->errorResponse("Order not found", 404);
+        $order->update($request->all());
+        return $this->successResponse("Order updated successfully", $order);
+    }
+
+    public function destroy($id): JsonResponse
+    {
+        $order = Order::find($id);
+        if (!$order) return $this->errorResponse("Order not found", 404);
+        $order->delete();
+        return $this->successResponse("Order deleted successfully");
     }
 }

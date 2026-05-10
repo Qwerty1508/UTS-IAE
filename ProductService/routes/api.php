@@ -3,22 +3,12 @@
 use App\Http\Controllers\Api\ProductController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| ProductService API Routes (UTS - IAE)
-|--------------------------------------------------------------------------
-*/
-
-/**
- * 1. PROVIDER: Get Product by ID
- * Method: GET
- * URL: /api/products/{id}
- */
+Route::get('/products', [ProductController::class, 'index']);
+Route::post('/products', [ProductController::class, 'store']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
+Route::put('/products/{id}', [ProductController::class, 'update']);
+Route::delete('/products/{id}', [ProductController::class, 'destroy']);
+Route::post('/products/{id}/update-stock', [ProductController::class, 'updateStock']);
 
-/**
- * 2. CONSUMER: Get Product with Owner (Call UserService)
- * Method: GET
- * URL: /api/products/{id}/owner
- */
+// Consumer route
 Route::get('/products/{id}/owner', [ProductController::class, 'showWithOwner']);

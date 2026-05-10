@@ -20,7 +20,7 @@ class UserController extends Controller
     public function show($id): JsonResponse
     {
         $validator = Validator::make(['id' => $id], [
-            'id' => 'required|integer|min:1',
+            'id' => 'required|string|uuid',
         ]);
 
         if ($validator->fails()) {
@@ -36,13 +36,49 @@ class UserController extends Controller
         return $this->successResponse("User found", $user);
     }
 
+    public function index(): JsonResponse
+    {
+        return $this->successResponse("Users retrieved successfully", User::all());
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string',
+            'email' => 'required|email|unique:users',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse("Validation failed", 400, $validator->errors());
+        }
+
+        $user = User::create($request->all());
+        return $this->successResponse("User created successfully", $user, 201);
+    }
+
+    public function update(Request $request, $id): JsonResponse
+    {
+        $user = User::find($id);
+        if (!$user) return $this->errorResponse("User not found", 404);
+        $user->update($request->all());
+        return $this->successResponse("User updated successfully", $user);
+    }
+
+    public function destroy($id): JsonResponse
+    {
+        $user = User::find($id);
+        if (!$user) return $this->errorResponse("User not found", 404);
+        $user->delete();
+        return $this->successResponse("User deleted successfully");
+    }
+
     /**
      * CONSUMER: GET /api/users/{id}/orders
      */
     public function showWithOrders($id): JsonResponse
     {
         $validator = Validator::make(['id' => $id], [
-            'id' => 'required|integer|min:1',
+            'id' => 'required|string|uuid',
         ]);
 
         if ($validator->fails()) {

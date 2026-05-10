@@ -1,20 +1,21 @@
-# Use pre-configured PHP image for Laravel (includes pdo_mysql, redis, etc.)
-FROM serversideup/php:8.2-fpm-alpine
+# Use pre-configured PHP + Nginx image for Laravel (Debian based for better stability)
+FROM serversideup/php:8.2-fpm-nginx
 
-# Switch to root to change permissions if needed, but serversideup handles this
+# Switch to root to install extensions
 USER root
+RUN install-php-extensions sockets bcmath
 
 # Set working directory
-WORKDIR /var/www
+WORKDIR /var/www/html
 
 # Copy existing application directory contents
-COPY --chown=www-data:www-data . /var/www
+COPY --chown=www-data:www-data . /var/www/html
 
-# Switch to www-data for composer install
+# Switch back to www-data for composer and app execution
 USER www-data
 
-# Install dependencies (no network issues here because it only talks to packagist which works)
-RUN composer install --no-interaction --no-dev --optimize-autoloader
+# Install dependencies (Including dev to avoid "Class not found" for Pail/Sail etc.)
+RUN composer install --no-interaction --optimize-autoloader --ignore-platform-reqs
 
-EXPOSE 9000
-CMD ["php-fpm"]
+# Serversideup image runs Nginx on 8080 by default
+EXPOSE 8080
