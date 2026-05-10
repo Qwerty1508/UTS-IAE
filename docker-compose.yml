@@ -1,0 +1,145 @@
+version: '3.8'
+
+services:
+  # User Service
+  user-service:
+    build:
+      context: ./UserService
+      dockerfile: Dockerfile
+    container_name: user-service
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./UserService:/var/www
+    networks:
+      - uts-network
+
+  user-worker:
+    build:
+      context: ./UserService
+      dockerfile: Dockerfile
+    container_name: user-worker
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./UserService:/var/www
+    command: php artisan queue:work
+    networks:
+      - uts-network
+    depends_on:
+      - redis
+      - mysql
+
+  # Product Service
+  product-service:
+    build:
+      context: ./ProductService
+      dockerfile: Dockerfile
+    container_name: product-service
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./ProductService:/var/www
+    networks:
+      - uts-network
+
+  product-worker:
+    build:
+      context: ./ProductService
+      dockerfile: Dockerfile
+    container_name: product-worker
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./ProductService:/var/www
+    command: php artisan queue:work
+    networks:
+      - uts-network
+    depends_on:
+      - redis
+      - mysql
+
+  # Order Service
+  order-service:
+    build:
+      context: ./OrderService
+      dockerfile: Dockerfile
+    container_name: order-service
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./OrderService:/var/www
+    networks:
+      - uts-network
+
+  # Queue Workers
+  order-worker:
+    build:
+      context: ./OrderService
+      dockerfile: Dockerfile
+    container_name: order-worker
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./OrderService:/var/www
+    command: php artisan queue:work
+    networks:
+      - uts-network
+    depends_on:
+      - redis
+      - mysql
+
+  # Nginx Service
+  nginx:
+    image: nginx:alpine
+    container_name: uts-nginx
+    restart: unless-stopped
+    ports:
+      - "8001:80"
+      - "8002:81"
+      - "8003:82"
+    volumes:
+      - ./UserService:/var/www/user:ro
+      - ./ProductService:/var/www/product:ro
+      - ./OrderService:/var/www/order:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+    networks:
+      - uts-network
+    depends_on:
+      - user-service
+      - product-service
+      - order-service
+
+  # Database Service
+  mysql:
+    image: mysql:8.0
+    container_name: uts-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+    ports:
+      - "33066:3306"
+    volumes:
+      - uts-db-data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - uts-network
+
+  # Redis Service (for Queue)
+  redis:
+    image: redis:alpine
+    container_name: uts-redis
+    restart: unless-stopped
+    ports:
+      - "63799:6379"
+    networks:
+      - uts-network
+
+networks:
+  uts-network:
+    driver: bridge
+
+volumes:
+  uts-db-data:
+    driver: local

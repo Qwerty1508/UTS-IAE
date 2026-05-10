@@ -1,0 +1,13 @@
+Nama Kelompok: [NAMA_KELOMPOK]
+Nama Anggota:
+1. [NAMA_1] - [NIM_1]
+2. [NAMA_2] - [NIM_2]
+3. [NAMA_3] - [NIM_3]
+
+Link Video Demo: [LINK_VIDEO_YOUTUBE/DRIVE]
+
+Penjelasan Singkat:
+- Arsitektur Microservices menggunakan Docker Compose.
+- Komunikasi asinkron diimplementasikan pada OrderService menggunakan Laravel Jobs & Redis Queue (ProcessOrderJob).
+- Konfigurasi Kubernetes tersedia di folder /k8s (Deployment, Service, Ingress, ConfigMap).
+- Database terisolasi: uts_user, uts_product, uts_order.

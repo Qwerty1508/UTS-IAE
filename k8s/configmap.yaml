@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: uts-config
+data:
+  DB_HOST: mysql
+  DB_PORT: "3306"
+  REDIS_HOST: redis
+  QUEUE_CONNECTION: redis
+  USER_SERVICE_URL: http://user-service
+  PRODUCT_SERVICE_URL: http://product-service
+  ORDER_SERVICE_URL: http://order-service

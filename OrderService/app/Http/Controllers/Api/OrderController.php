@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 use Exception;
+use App\Jobs\ProcessOrderJob;
 
 class OrderController extends Controller
 {
@@ -80,7 +81,10 @@ class OrderController extends Controller
                 'status' => 'pending'
             ]);
 
-            return $this->successResponse("Order created successfully", $order, 21);
+            // Dispatch Asynchronous Job
+            ProcessOrderJob::dispatch($order);
+
+            return $this->successResponse("Order created successfully and is being processed", $order, 21);
         } catch (Exception $e) {
             return $this->errorResponse("Internal server error", 500);
         }
