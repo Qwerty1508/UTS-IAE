@@ -1,0 +1,12 @@
+/vendor/
+/node_modules/
+/public/build/
+/.env
+/storage/logs/
+/storage/framework/views/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/app/public/
+.git/
+.phpunit.cache/
+docker-compose.yml
